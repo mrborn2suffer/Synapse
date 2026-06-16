@@ -38,3 +38,4 @@ target/
 dependency-reduced-pom.xml
 tmp_uploads/
 !sample data.json
+!sample_data.json
