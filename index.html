@@ -1,0 +1,2698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Synapse — AI Candidate Matching Engine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    /* Corporate Light Theme Colors */
+    --bg-main: #f8fafc;       /* Light Slate Background */
+    --bg-pane: #ffffff;       /* Pure White for Cards/Panels */
+    --bg-hover: #f1f5f9;      /* Light Hover State */
+    --bg-selected: #eff6ff;   /* Light Blue Active State */
+    
+    --border-color: #e2e8f0;  /* Clean, crisp borders */
+    --border-focus: #93c5fd;
+    
+    --text-primary: #1e293b;  /* Slate 800 for high readability */
+    --text-secondary: #64748b;/* Slate 500 */
+    --text-muted: #94a3b8;    /* Slate 400 */
+    
+    --accent: #2563eb;         /* Professional Royal Blue */
+    --accent-hover: #1d4ed8;
+    
+    /* Semantic Colors */
+    --gauge-green: #10b981;
+    --gauge-amber: #f59e0b;
+    --gauge-red: #ef4444;
+
+    /* Subtle Corporate Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+
+    /* Typography */
+    --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-mono: 'Fira Code', monospace;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    background-color: var(--bg-main);
+    color: var(--text-secondary);
+    font-family: var(--font-sans);
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    height: 70px;
+    background-color: var(--bg-pane);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  /* Mobile menu button (hidden on desktop) */
+  .mobile-menu-btn {
+    display: none;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 38px;
+    height: 38px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 20px;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+  }
+
+  .mobile-menu-btn:hover {
+    border-color: var(--text-muted);
+  }
+
+  .header-title-block h1 {
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+    color: var(--text-primary);
+  }
+
+  .header-title-block p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  .main-layout {
+    flex-grow: 1;
+    display: flex;
+    overflow: hidden;
+    background-color: var(--bg-main);
+    position: relative;
+  }
+
+  /* Mobile Sidebar Overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
+    z-index: 140;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    display: none;
+  }
+
+  .sidebar-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Left Panel */
+  .left-pane {
+    width: 420px;
+    background-color: var(--bg-pane);
+    border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    z-index: 5;
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .mobile-close-container {
+    display: none;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  .mobile-close-container span {
+    font-weight: 700;
+    color: var(--text-primary);
+    font-size: 16px;
+  }
+
+  .close-sidebar-btn {
+    background: transparent;
+    border: none;
+    font-size: 18px;
+    color: var(--text-secondary);
+    cursor: pointer;
+  }
+
+  .search-container {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background-color: var(--bg-pane);
+    z-index: 2;
+  }
+
+  .search-input {
+    width: 100%;
+    background-color: #f8fafc;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 10px 14px;
+    font-size: 13px;
+    outline: none;
+    font-family: var(--font-sans);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  .search-input::placeholder {
+    color: var(--text-muted);
+  }
+
+  .search-input:focus {
+    border-color: var(--accent);
+    background-color: #fff;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+  }
+
+  .filter-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .filter-btn {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+
+  .filter-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .candidate-list {
+    flex-grow: 1;
+    overflow-y: auto;
+  }
+
+  /* Candidate List Item */
+  .candidate-item {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+    border-left: 4px solid transparent;
+    background-color: var(--bg-pane);
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    transition: all 0.2s ease;
+  }
+
+  .candidate-item:hover {
+    background-color: var(--bg-hover);
+  }
+
+  .candidate-item.selected {
+    background-color: var(--bg-selected);
+    border-left-color: var(--accent);
+  }
+
+  .rank-badge {
+    font-family: var(--font-mono);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-muted);
+    line-height: 1.2;
+    min-width: 52px;
+    flex-shrink: 0;
+    margin-right: 8px;
+  }
+
+  .candidate-item.selected .rank-badge {
+    color: var(--accent);
+  }
+
+  .item-details {
+    flex-grow: 1;
+  }
+
+  .item-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+  }
+
+  .item-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .candidate-item.selected .item-name {
+    color: var(--accent);
+  }
+
+  .item-score {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .item-headline {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 250px;
+    margin-bottom: 6px;
+  }
+
+  .item-meta {
+    display: flex;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+  }
+
+  /* Fixed Pagination Footer */
+  .pagination-container {
+    padding: 14px 20px;
+    background-color: var(--bg-pane);
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .page-btn {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 6px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--font-mono);
+    border-radius: 4px;
+    transition: all 0.2s ease;
+  }
+
+  .page-btn:hover:not(:disabled) {
+    border-color: var(--text-muted);
+    color: var(--text-primary);
+  }
+
+  .page-btn.active {
+    background-color: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+
+  .page-btn:disabled {
+    color: var(--text-muted);
+    background-color: #f8fafc;
+    cursor: not-allowed;
+  }
+
+  /* Right Panel: Detail Viewer */
+  .right-pane {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 40px 50px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px; 
+  }
+
+  .empty-state {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-muted);
+  }
+
+  .empty-state h2 {
+    font-weight: 500;
+    font-size: 20px;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+  }
+
+  .profile-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+  }
+
+  .profile-title-block h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.5px;
+  }
+
+  .profile-headline {
+    font-size: 16px;
+    color: var(--text-secondary);
+    margin-bottom: 24px;
+  }
+
+  /* 2x2 Clean Badges Info Grid */
+  .profile-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(160px, 1fr));
+    gap: 12px;
+    max-width: 500px;
+  }
+
+  .meta-badge {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    padding: 10px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .meta-val {
+    font-weight: 600;
+    color: var(--text-primary);
+    display: block;
+    margin-top: 4px;
+    font-size: 13px;
+  }
+
+  /* Circular Score Gauge Styling */
+  .score-gauge-container {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .gauge-svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+    position: absolute;
+  }
+
+  .gauge-bg {
+    fill: none;
+    stroke: var(--border-color);
+    stroke-width: 8;
+  }
+
+  .gauge-fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1); 
+  }
+
+  .gauge-text-block {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .gauge-score {
+    font-family: var(--font-mono);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .gauge-rank {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    margin-top: 2px;
+    text-transform: uppercase;
+  }
+
+  /* Official Alert System Evaluation Box */
+  .reasoning-section {
+    background-color: var(--bg-selected);
+    border: 1px solid #bfdbfe; 
+    border-left: 4px solid var(--accent);
+    padding: 20px 24px;
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .reasoning-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--accent);
+    margin-bottom: 8px;
+    font-weight: 700;
+  }
+
+  .reasoning-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  .section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .summary-text {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  /* Skills display */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+
+  .skill-card {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    padding: 16px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .skill-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .skill-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  /* Skill Level Pills */
+  .skill-proficiency {
+    font-size: 11px;
+    text-transform: capitalize;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 12px;
+    white-space: nowrap;
+  }
+
+  .prof-advanced { background-color: #dcfce7; color: #166534; }
+  .prof-intermediate { background-color: #fef9c3; color: #854d0e; }
+  .prof-beginner { background-color: #f1f5f9; color: #475569; }
+
+  /* Experience Timeline */
+  .timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    position: relative;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 5px;
+    bottom: 5px;
+    width: 2px;
+    background-color: var(--border-color);
+  }
+
+  .timeline-item {
+    position: relative;
+    padding-left: 32px;
+  }
+
+  .timeline-marker {
+    position: absolute;
+    left: 2px;
+    top: 6px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #fff;
+    border: 2px solid var(--text-muted);
+  }
+
+  .timeline-item:first-child .timeline-marker {
+    border-color: var(--accent);
+    background-color: var(--accent);
+    box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  }
+
+  .timeline-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 4px;
+    gap: 15px;
+  }
+
+  .timeline-role {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .timeline-company {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .timeline-dates {
+    font-size: 12px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .timeline-desc {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  /* Educational Block */
+  .education-row {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    justify-content: space-between;
+    gap: 15px;
+  }
+
+  .edu-school {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-primary);
+  }
+
+  .edu-degree {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+
+  .edu-meta {
+    text-align: right;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
+
+  .edu-years {
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+    margin-bottom: 4px;
+  }
+
+  .edu-tier {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+    font-weight: 600;
+  }
+
+  /* Bottom Split Grid */
+  .details-split-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 0.8fr;
+    gap: 40px;
+  }
+
+  /* Signals table */
+  .signals-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .signal-card-box {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+
+  .signal-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .signal-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border-color);
+    font-size: 13px;
+  }
+
+  .signal-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .signal-label {
+    color: var(--text-secondary);
+    width: 60%;
+  }
+
+  .signal-val {
+    font-family: var(--font-mono);
+    text-align: right;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+
+  /* View JD Toggle */
+  .jd-toggle-btn {
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+  }
+
+  .jd-toggle-btn:hover {
+    border-color: var(--text-muted);
+    color: var(--accent);
+  }
+
+  /* Overlay Modal for JD */
+  .jd-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .jd-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .jd-modal-content {
+    background-color: var(--bg-pane);
+    border: 1px solid var(--border-color);
+    width: 800px;
+    max-width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    border-radius: 12px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(20px) scale(0.98);
+    transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .jd-modal.open .jd-modal-content {
+    transform: translateY(0) scale(1);
+  }
+
+  .jd-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+  }
+
+  .jd-modal-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .close-modal-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-weight: 500;
+    transition: all 0.2s;
+  }
+
+  .close-modal-btn:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+  }
+
+  /* JD Edit CSS */
+  .jd-dropzone {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    background-color: var(--bg-card);
+    transition: all 0.2s ease;
+    margin-bottom: 12px;
+  }
+  .jd-dropzone:hover, .jd-dropzone.dragover {
+    border-color: var(--accent);
+    background-color: rgba(99, 102, 241, 0.05);
+  }
+  .jd-dropzone-icon {
+    margin-bottom: 8px;
+    color: var(--text-secondary);
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .jd-dropzone-text {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+  }
+  .jd-dropzone-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+  }
+  .jd-textarea-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .jd-textarea-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .jd-textarea {
+    width: 100%;
+    height: 250px;
+    background-color: var(--bg-body);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 16px;
+    color: var(--text-primary);
+    font-family: var(--font-mono, monospace);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    outline: none;
+  }
+  .jd-textarea:focus {
+    border-color: var(--accent);
+  }
+  .jd-modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 16px;
+    margin-top: 8px;
+  }
+
+  /* Primary Action Button (Blue Accent) */
+  .btn-primary {
+    background-color: var(--accent);
+    border: 1px solid var(--accent);
+    color: #fff;
+    padding: 8px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    border-radius: 6px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-primary:hover {
+    background-color: var(--accent-hover);
+    border-color: var(--accent-hover);
+    color: #fff;
+  }
+
+  /* Overlay Modal for Export Config */
+  .export-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(2px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+
+  .export-modal.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .export-modal-content {
+    background-color: var(--bg-pane);
+    border: 1px solid var(--border-color);
+    width: 480px;
+    max-width: 90%;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-20px);
+    transition: transform 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .export-modal.open .export-modal-content {
+    transform: translateY(0);
+  }
+
+  .jd-section-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 15px;
+    margin-bottom: 8px;
+  }
+
+  .jd-body-text {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+  }
+
+  .jd-body-text ul {
+    margin-left: 20px;
+    margin-top: 8px;
+  }
+
+  .jd-body-text li {
+    margin-bottom: 8px;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1200px) {
+    .left-pane { width: 360px; }
+    .details-split-grid { grid-template-columns: 1fr; gap: 40px; }
+  }
+
+  @media (max-width: 900px) {
+    .mobile-menu-btn { display: flex; }
+    .header-title-block p { display: none; }
+    header { padding: 0 20px; }
+    
+    .sidebar-overlay { display: block; }
+    
+    .left-pane { 
+      position: fixed; 
+      top: 0; 
+      left: 0; 
+      width: 85%; 
+      max-width: 360px; 
+      height: 100vh; 
+      border-right: none; 
+      z-index: 150; 
+      transform: translateX(-100%);
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .left-pane.open { transform: translateX(0); }
+    .mobile-close-container { display: flex; }
+    
+    .right-pane { width: 100%; padding: 30px 20px; }
+    .signals-grid { grid-template-columns: 1fr; }
+  }
+
+  @media (max-width: 600px) {
+    .header-title-block h1 { font-size: 15px; }
+    .jd-toggle-btn { padding: 8px 10px; font-size: 11px; }
+    .profile-header { flex-direction: column; align-items: flex-start; }
+    .profile-meta-grid { grid-template-columns: 1fr; }
+    .score-gauge-container { margin-top: 10px; align-self: center; }
+  }
+
+  /* Corporate Scrollbar */
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-track { background: var(--bg-main); }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+  /* Loading Spinner Components */
+  .spinner-monotonic {
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--text-primary);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 16px auto;
+  }
+  @keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }
+
+  .processing-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(15, 23, 42, 0.66);
+    backdrop-filter: blur(4px);
+    padding: 24px;
+  }
+
+  .processing-card {
+    width: min(92vw, 360px);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 16px;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.2);
+    padding: 28px 24px;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .processing-card p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .loader {
+    --s: 25px;
+    --g: 5px;
+    --tile: #e2e8f0;
+    --highlight: #93c5fd;
+    --shadow: #cbd5e1;
+    --border-color: #e2e8f0;
+    --border-focus: #93c5fd;
+    width: calc(3 * (1.353 * var(--s) + var(--g)));
+    aspect-ratio: 3;
+    display: grid;
+    justify-items: end;
+    overflow: hidden;
+    --_m: linear-gradient(
+      90deg,
+      transparent,
+      #000 15px calc(100% - 15px),
+      transparent
+    );
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+  }
+
+  .loader::before {
+    content: "";
+    width: 200%;
+    background:
+      linear-gradient(90deg, var(--tile) 50%, transparent 0),
+      conic-gradient(
+        from -90deg at var(--s) calc(0.353 * var(--s)),
+        var(--highlight) 135deg,
+        var(--shadow) 0 270deg,
+        var(--border-color) 0
+      );
+    background-blend-mode: soft-light;
+    box-shadow:
+      inset 0 0 0 1px var(--border-color),
+      inset 0 1px 0 rgba(255,255,255,.45),
+      0 1px 2px rgba(15,23,42,.06);
+    --_m:
+      linear-gradient(
+        to bottom right,
+        transparent calc(0.25 * var(--s)),
+        #000 0 calc(100% - calc(0.25 * var(--s)) - 1.414 * var(--g)),
+        transparent 0
+      ),
+      conic-gradient(
+        from -90deg at right var(--g) bottom var(--g),
+        #000 90deg,
+        transparent 0
+      );
+    -webkit-mask: var(--_m);
+    mask: var(--_m);
+    background-size:
+      calc(100% / 3) 100%,
+      calc(100% / 6) 100%;
+    -webkit-mask-size: calc(100% / 6) 100%;
+    mask-size: calc(100% / 6) 100%;
+    -webkit-mask-composite: source-in;
+    mask-composite: intersect;
+    animation: l10 1s linear infinite;
+  }
+
+  @keyframes l10 {
+    to { transform: translate(calc(100% / 3)); }
+  }
+  
+  .filter-select {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 8px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    outline: none;
+    border-radius: 0;
+    transition: all 0.2s ease;
+  }
+  .filter-select:hover {
+    color: var(--text-primary);
+    border-color: var(--text-secondary);
+  }
+  .filter-select:focus { border-color: var(--accent); }
+
+  @media (max-width: 900px) {
+    .header-right-app-name {
+      display: none !important;
+    }
+  }
+
+  /* Windows-style Print Modal layout */
+  .windows-print-container {
+    display: flex;
+    gap: 20px;
+    height: 100%;
+    margin-top: 10px;
+  }
+
+  .print-settings-col {
+    flex: 1.2;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    text-align: left;
+  }
+
+  .print-preview-col {
+    flex: 0.8;
+    background-color: var(--bg-hover);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    position: relative;
+    min-height: 280px;
+  }
+
+  .preview-page-mock {
+    background-color: #fff;
+    border: 1px dashed var(--text-muted);
+    box-shadow: 0 4px 12px rgba(15,23,42,0.12);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 10px;
+    overflow: hidden;
+  }
+
+  .preview-page-mock.portrait {
+    width: 140px;
+    height: 200px;
+  }
+
+  .preview-page-mock.landscape {
+    width: 200px;
+    height: 140px;
+  }
+
+  .mock-header-line {
+    height: 6px;
+    background-color: #cbd5e1;
+    border-radius: 2px;
+    margin-bottom: 4px;
+    width: 60%;
+  }
+
+  .mock-sub-line {
+    height: 4px;
+    background-color: #f1f5f9;
+    border-radius: 1px;
+    margin-bottom: 8px;
+    width: 40%;
+  }
+
+  .mock-table-row {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  .mock-bar {
+    height: 4px;
+    background-color: #e2e8f0;
+    border-radius: 1px;
+    flex: 1;
+  }
+
+  .mock-bar.short {
+    flex: 0.5;
+  }
+</style>
+</head>
+<body>
+
+  <header>
+    <div class="header-left" style="display: flex; align-items: center; gap: 8px;">
+      <button class="mobile-menu-btn" id="mobile-menu-btn">☰</button>
+      <!-- Connected Node Network Logo Symbol -->
+      <svg xmlns="http://www.w3.org/2000/svg" width="1.5em" height="1.5em" viewBox="0 0 24 24">
+	<path d="M0 0h24v24H0z" fill="none" />
+	<path fill="#1d4ed8" d="M18.5 3a2.5 2.5 0 1 1-.912 4.828l-4.556 4.555a5.48 5.48 0 0 1 .936 3.714l2.624.787a2.5 2.5 0 1 1-.575 1.916l-2.623-.788a5.5 5.5 0 0 1-10.39-2.29L3 15.5l.004-.221a5.5 5.5 0 0 1 2.984-4.673L5.2 7.982a2.5 2.5 0 0 1-2.194-2.304L3 5.5l.005-.164a2.5 2.5 0 1 1 4.111 2.071l.787 2.625a5.48 5.48 0 0 1 3.714.936l4.555-4.556a2.5 2.5 0 0 1-.167-.748L16 5.5l.005-.164A2.5 2.5 0 0 1 18.5 3" />
+</svg>
+
+      <span style="font-family: var(--font-sans); font-size: 15px; font-weight: 700; color: var(--text-primary); letter-spacing: 0.5px;">Synapse</span>
+    </div>
+    <div style="display: flex; gap: 12px; align-items: center; position: relative;">
+      <span class="header-right-app-name" style="font-size: 12.5px; font-weight: 600; color: var(--text-secondary); margin-right: 8px; border-right: 1px solid var(--border-color); padding-right: 14px; letter-spacing: 0.5px; display: inline-block;">Synapse Candidate Engine</span>
+      <button class="jd-toggle-btn" id="open-jd-btn">View/Edit Job Description</button>
+      <button class="btn-primary" id="export-pdf-btn">Export Shortlist</button>
+    </div>
+  </header>
+
+  <div class="main-layout">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <div class="processing-overlay" id="processing-overlay" hidden>
+      <div class="processing-card">
+        <div class="loader" aria-hidden="true"></div>
+        <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary);">Processing your file</h3>
+        <p id="processing-message">Uploading and ranking candidates...</p>
+      </div>
+    </div>
+
+    <div class="left-pane" id="left-pane">
+      <div class="import-container" id="sidebar-import-container" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color); background-color: var(--bg-pane); display: none;">
+        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-secondary); margin-bottom: 8px; font-weight: 600;">Import Candidates</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <label style="border: 1px dashed var(--border-color); padding: 10px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transition: border-color 0.2s ease; background-color: var(--bg-main);" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border-color)'">
+            <span style="font-size: 12px; color: var(--text-secondary);">Upload JSON file...</span>
+            <input type="file" id="import-file-input" style="display: none;" accept=".json,.jsonl,.gz,.zip">
+          </label>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <label style="font-size: 11px; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;">
+              <input type="checkbox" id="replace-checkbox" style="accent-color: var(--text-primary);"> Replace current list
+            </label>
+            <button id="reset-db-btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 4px 8px; font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px;" onmouseover="this.style.borderColor='var(--text-secondary)';" onmouseout="this.style.borderColor='var(--border-color)';">Reset</button>
+          </div>
+          <div id="import-status" style="font-size: 11px; color: var(--text-muted); display: none; margin-top: 4px; line-height: 1.4;"></div>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <div class="mobile-close-container">
+          <span>Candidates</span>
+          <button id="close-sidebar-btn" class="close-sidebar-btn">✕</button>
+        </div>
+        
+        <input type="text" class="search-input" id="search-input" placeholder="Search by name, title, or skill...">
+        
+        <div class="filter-tags">
+          <button class="filter-btn active" data-filter="all">All</button>
+          <button class="filter-btn" data-filter="exp">5-9 Yrs Exp</button>
+          <button class="filter-btn" data-filter="product">Product Co.</button>
+          <button class="filter-btn" data-filter="notice">Notice &le; 30d</button>
+          <button class="filter-btn" data-filter="local">Pune/Noida</button>
+          <select class="filter-select" id="score-filter-select" title="Filter by minimum score percentage">
+            <option value="0">Min Score</option>
+            <option value="85">Score &ge; 85%</option>
+            <option value="80">Score &ge; 80%</option>
+            <option value="75">Score &ge; 75%</option>
+            <option value="70">Score &ge; 70%</option>
+            <option value="60">Score &ge; 60%</option>
+            <option value="50">Score &ge; 50%</option>
+            <option value="custom">Custom %...</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="candidate-list" id="candidate-list">
+        </div>
+
+      <div class="pagination-container" id="pagination-container">
+        </div>
+    </div>
+
+    <div class="right-pane" id="right-pane">
+      <div class="empty-state">
+        <h2>Select a candidate</h2>
+        <p>Choose from the list on the left to view full profile details and recommendations.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="jd-modal" id="jd-modal">
+    <div class="jd-modal-content">
+      <div class="jd-modal-header">
+        <h3 class="jd-modal-title">Edit Job Description</h3>
+        <button class="close-modal-btn" id="close-jd-btn">close [esc]</button>
+      </div>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Hidden input for file selection -->
+        <input type="file" id="jd-file-input" accept=".pdf,.docx,.txt" style="display: none;">
+        
+        <!-- Sleek Drag & Drop zone -->
+        <div class="jd-dropzone" id="jd-dropzone">
+          <svg class="jd-dropzone-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="17 8 12 3 7 8"></polyline>
+            <line x1="12" y1="3" x2="12" y2="15"></line>
+          </svg>
+          <div class="jd-dropzone-text" id="jd-dropzone-text">Drag & drop a new JD (PDF or Word) here to auto-fill text</div>
+          <div class="jd-dropzone-sub">or click to browse from your computer</div>
+        </div>
+        
+        <div class="jd-textarea-container">
+          <div class="jd-textarea-label">-- OR PASTE/EDIT RAW TEXT BELOW --</div>
+          <textarea class="jd-textarea" id="jd-text-area" placeholder="Paste or type the job description here..."></textarea>
+        </div>
+      </div>
+      
+      <div class="jd-modal-footer">
+        <button class="jd-toggle-btn" id="cancel-jd-btn" style="border: 1px solid var(--border-color); background: transparent; color: var(--text-primary);">Cancel</button>
+        <button class="btn-primary" id="update-recalculate-jd-btn">Update & Recalculate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Export Shortlist Modal -->
+  <div class="export-modal" id="export-modal">
+    <div class="export-modal-content" style="width: 680px; max-width: 95%;">
+      <!-- Header -->
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 14px; margin-bottom: 18px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <!-- SVG Print Icon -->
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-primary)" stroke-width="2">
+            <path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M6 14h12v8H6z" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; font-family: var(--font-sans);">Print Shortlist Summary</h3>
+        </div>
+        <button class="close-modal-btn" id="close-export-btn" style="background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px;">✕</button>
+      </div>
+
+      <!-- Two-column Setup -->
+      <div class="windows-print-container">
+        <!-- Settings (Left Panel) -->
+        <div class="print-settings-col">
+          <!-- Score Threshold -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Match Score Threshold</label>
+            <select id="export-score-select" style="padding: 8px 10px; font-size: 12.5px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none;">
+              <option value="75" selected>Score &ge; 75% (Default)</option>
+              <option value="80">Score &ge; 80%</option>
+              <option value="85">Score &ge; 85%</option>
+              <option value="70">Score &ge; 70%</option>
+              <option value="custom">Custom %...</option>
+            </select>
+            <div id="export-score-custom-group" style="display: none; align-items: center; gap: 8px; margin-top: 4px;">
+              <span style="font-size: 11px; color: var(--text-secondary);">Score:</span>
+              <input type="number" id="export-score-input" min="0" max="100" value="75" style="width: 60px; padding: 5px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none; font-family: var(--font-mono);">
+              <span style="font-size: 11px; color: var(--text-secondary);">%</span>
+            </div>
+          </div>
+
+          <!-- Shortlist limit -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Candidates Limit</label>
+            <select id="export-limit-select" style="padding: 8px 10px; font-size: 12.5px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none;">
+              <option value="-1" selected>All qualifying candidates</option>
+              <option value="10">Top 10 candidates only</option>
+              <option value="50">Top 50 candidates only</option>
+              <option value="100">Top 100 candidates only</option>
+              <option value="custom">Custom count...</option>
+            </select>
+            <div id="export-limit-custom-group" style="display: none; align-items: center; gap: 8px; margin-top: 4px;">
+              <span style="font-size: 11px; color: var(--text-secondary);">Limit:</span>
+              <input type="number" id="export-limit-input" min="1" value="50" style="width: 80px; padding: 5px 8px; font-size: 12px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none; font-family: var(--font-mono);">
+            </div>
+          </div>
+
+          <!-- Orientation -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Orientation</label>
+            <select id="export-orientation" style="padding: 8px 10px; font-size: 12.5px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none;">
+              <option value="portrait" selected>Portrait</option>
+              <option value="landscape">Landscape</option>
+            </select>
+          </div>
+
+          <!-- Paper Size -->
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            <label style="font-size: 11.5px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Paper Size</label>
+            <select id="export-paper-size" style="padding: 8px 10px; font-size: 12.5px; border-radius: 4px; border: 1px solid var(--border-color); background-color: var(--bg-main); color: var(--text-primary); outline: none;">
+              <option value="A4" selected>A4</option>
+              <option value="Letter">Letter</option>
+              <option value="Legal">Legal</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Preview Mockup (Right Panel) -->
+        <div class="print-preview-col">
+          <div id="print-preview-mock" class="preview-page-mock portrait">
+            <!-- Mock header -->
+            <div class="mock-header-line"></div>
+            <div class="mock-sub-line"></div>
+            <!-- Mock Table Rows -->
+            <div style="display: flex; flex-direction: column; gap: 3px;">
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+              <div class="mock-table-row"><div class="mock-bar short"></div><div class="mock-bar"></div><div class="mock-bar short"></div></div>
+            </div>
+          </div>
+          <!-- Label under mockup -->
+          <div style="margin-top: 12px; font-size: 11px; font-weight: 600; color: var(--text-secondary);" id="preview-page-label">
+            A4 Portrait
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Buttons -->
+      <div style="display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid var(--border-color); padding-top: 14px; margin-top: 18px;">
+        <button id="cancel-export-btn" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 8px 16px; font-size: 12px; font-weight: 500; cursor: pointer; border-radius: 6px; transition: all 0.2s;" onmouseover="this.style.borderColor='var(--text-secondary)'; this.style.backgroundColor='var(--bg-hover)';" onmouseout="this.style.borderColor='var(--border-color)'; this.style.backgroundColor='transparent';">Cancel</button>
+        <button id="export-xlsx-btn" class="btn-primary" style="padding: 8px 20px; background-color: #10b981; border-color: #10b981; color: white;">Export Excel (.xlsx)</button>
+        <button id="confirm-export-btn" class="btn-primary" style="padding: 8px 20px;">Print PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Dynamic API Base URL logic for cross-origin deployments (GitHub Pages vs Localhost vs Custom)
+    let API_BASE = '';
+    if (window.location.hostname.includes('github.io')) {
+      API_BASE = localStorage.getItem('API_BASE_URL') || 'https://synapse-ah7a.onrender.com';
+    }
+
+    // Global State
+    let candidatesData = [];
+    let activeFilter = 'all';
+    let searchQuery = '';
+    let minScoreFilter = 0;
+    let currentPage = 1;
+    const pageSize = 20;
+    let totalCandidatesCount = 0;
+    let totalPagesCount = 1;
+
+    // Elements
+    const candidateList = document.getElementById('candidate-list');
+    const rightPane = document.getElementById('right-pane');
+    const paginationContainer = document.getElementById('pagination-container');
+    const searchInput = document.getElementById('search-input');
+    const filterBtns = document.querySelectorAll('.filter-btn');
+    
+    const jdModal = document.getElementById('jd-modal');
+    const openJdBtn = document.getElementById('open-jd-btn');
+    const closeJdBtn = document.getElementById('close-jd-btn');
+    const importFileInput = document.getElementById('import-file-input');
+    const replaceCheckbox = document.getElementById('replace-checkbox');
+    const resetDbBtn = document.getElementById('reset-db-btn');
+    const importStatus = document.getElementById('import-status');
+    const scoreFilterSelect = document.getElementById('score-filter-select');
+
+    // Mobile Sidebar Elements
+    const leftPane = document.getElementById('left-pane');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const mobileMenuBtn = document.getElementById('mobile-menu-btn');
+    const closeSidebarBtn = document.getElementById('close-sidebar-btn');
+
+    function updateUIState() {
+      const isEmpty = (totalCandidatesCount === 0);
+
+      // Hide or show the sidebar import container dynamically
+      const sidebarImportContainer = document.getElementById('sidebar-import-container');
+      if (sidebarImportContainer) {
+        sidebarImportContainer.style.display = isEmpty ? 'none' : 'block';
+      }
+
+      if (searchInput) {
+        searchInput.disabled = isEmpty;
+        searchInput.style.opacity = isEmpty ? '0.35' : '1';
+        searchInput.style.pointerEvents = isEmpty ? 'none' : 'auto';
+        searchInput.placeholder = isEmpty ? 'No dataset loaded' : 'Search by name, title, skill...';
+      }
+
+      filterBtns.forEach(btn => {
+        btn.style.opacity = isEmpty ? '0.35' : '1';
+        btn.style.pointerEvents = isEmpty ? 'none' : 'auto';
+      });
+
+      if (scoreFilterSelect) {
+        scoreFilterSelect.disabled = isEmpty;
+        scoreFilterSelect.style.opacity = isEmpty ? '0.35' : '1';
+        scoreFilterSelect.style.pointerEvents = isEmpty ? 'none' : 'auto';
+      }
+
+      const exportPdfBtn = document.getElementById('export-pdf-btn');
+      if (exportPdfBtn) {
+        exportPdfBtn.style.opacity = isEmpty ? '0.35' : '1';
+        exportPdfBtn.style.pointerEvents = isEmpty ? 'none' : 'auto';
+      }
+
+      if (openJdBtn) {
+        openJdBtn.style.opacity = '1';
+        openJdBtn.style.pointerEvents = 'auto';
+      }
+
+      if (isEmpty && candidateList) {
+        candidateList.innerHTML = `
+          <div class="empty-state-container" style="padding: 80px 20px; text-align: center; color: var(--text-secondary); font-family: var(--font-sans);">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 12px; opacity: 0.5;">
+              <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" />
+              <path d="M12 8V12" />
+              <path d="M12 16H12.01" />
+            </svg>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px;">No Dataset Loaded</div>
+            <p style="font-size: 11px; line-height: 1.4; color: var(--text-muted); max-width: 180px; margin: 0 auto 16px auto;">
+              Upload a candidate list JSON file in the central pane to begin.
+            </p>
+            <img src="https://media.tenor.com/SRpePEfBFYMAAAAj/tap-waiting.gif" alt="Waiting..." style="width: 120px; height: 120px; margin: 0 auto; display: block; border-radius: 6px; object-fit: contain;">          </div>
+        `;
+        if (rightPane) {
+          rightPane.innerHTML = `
+            <div class="empty-state" style="padding: 60px 20px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%;">
+              <label class="empty-state-upload" id="empty-state-upload" style="border: 2px dashed var(--border-color); padding: 48px 32px; border-radius: 12px; background-color: var(--bg-pane); text-align: center; width: 100%; max-width: 440px; cursor: pointer; display: block; transition: all 0.2s ease; box-shadow: var(--shadow-sm);">
+                <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" style="margin-bottom: 16px; opacity: 0.85;">
+                  <path d="M12 16V11M12 11L9.5 13.5M12 11L14.5 13.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M20 16.58C21.17 15.65 22 14.19 22 12.5C22 9.46 19.54 7 16.5 7C16.29 7 16.08 7.01 15.88 7.03C15.02 4.07 12.26 2 9 2C4.58 2 1 5.58 1 10C1 12.58 2.22 14.88 4.12 16.33" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0 0 8px 0;">Import Candidates</h3>
+                <p style="font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin: 0 0 20px 0;">
+                  Drag & drop your candidate list JSON file here,<br>or click to select file.
+                </p>
+                <input type="file" id="center-file-input" style="display: none;" accept=".json,.jsonl,.gz,.zip">
+                <div class="btn-primary" style="display: inline-block; padding: 8px 20px; font-size: 12px; border-radius: 6px; font-weight: 600; cursor: pointer; text-align: center;">Select File</div>
+              </label>
+            </div>
+          `;
+          setupDragAndDrop();
+        }
+        if (paginationContainer) paginationContainer.innerHTML = '';
+      }
+    }
+
+    async function loadCandidates(isActionBased = false) {
+      try {
+        if (isActionBased && candidateList) {
+          candidateList.innerHTML = `
+            <div style="padding: 80px 20px; text-align: center; color: var(--text-secondary); font-family: var(--font-sans);">
+              <div class="spinner-monotonic"></div>
+              <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.5px; color: var(--text-primary);">Querying database...</div>
+            </div>
+          `;
+        }
+        
+        const query = encodeURIComponent(searchQuery);
+        const url = `${API_BASE}/api/candidates?page=${currentPage}&limit=${pageSize}&search=${query}&filter=${activeFilter}&min_score=${minScoreFilter}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error('Failed to fetch candidates from database.');
+        }
+        
+        const data = await response.json();
+        candidatesData = data.candidates || [];
+        totalCandidatesCount = data.total_count || 0;
+        totalPagesCount = data.total_pages || 1;
+        
+        renderList();
+        
+        if (candidatesData.length > 0) {
+          const selectedId = getSelectedCandidateId();
+          if (!selectedId || !candidatesData.some(c => c.candidate_id === selectedId)) {
+            selectCandidate(candidatesData[0].candidate_id);
+          }
+        } else if (totalCandidatesCount > 0 && rightPane) {
+          rightPane.innerHTML = `<div class="empty-state"><h2>No matching candidate</h2><p>Refine your search or filters.</p></div>`;
+        }
+      } catch (error) {
+        printDebugError(error);
+      }
+    }
+
+    function printDebugError(error) {
+      console.error('Data stack fetch failure handled securely:', error);
+      totalCandidatesCount = 0;
+      candidatesData = [];
+      updateUIState();
+    }
+
+    function renderList() {
+      updateUIState();
+      if (totalCandidatesCount === 0) return;
+
+      if (candidatesData.length === 0 && candidateList) {
+        candidateList.innerHTML = `<div style="padding: 40px 20px; text-align: center; color: var(--text-muted); font-size: 13px;">No matching candidates found.</div>`;
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+      }
+
+      const selectedId = getSelectedCandidateId();
+
+      if (candidateList) {
+        candidateList.innerHTML = candidatesData.map(cand => {
+          const isSelected = cand.candidate_id === selectedId;
+          const scorePct = (cand.score * 100).toFixed(2);
+          
+          return `
+            <div class="candidate-item ${isSelected ? 'selected' : ''}" onclick="selectCandidate('${cand.candidate_id}')">
+              <div class="rank-badge">${String(cand.rank).padStart(2, '0')}</div>
+              <div class="item-details">
+                <div class="item-title-row">
+                  <div class="item-name">${cand.profile.anonymized_name}</div>
+                  <div class="item-score">${scorePct}%</div>
+                </div>
+                <div class="item-headline">${cand.profile.current_title} at ${cand.profile.current_company}</div>
+                <div class="item-meta">
+                  <span>${cand.profile.years_of_experience.toFixed(1)} yrs exp</span>
+                  <span>•</span>
+                  <span>${cand.redrob_signals.notice_period_days}d notice</span>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      renderPaginationControls(totalCandidatesCount);
+    }
+
+    function changePage(page) {
+      currentPage = page;
+      loadCandidates(false);
+    }
+
+    function renderPaginationControls(totalItems) {
+      if (!paginationContainer) return;
+      const totalPages = totalPagesCount;
+      let html = '';
+      
+      html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(Math.max(1, parseInt(currentPage) - 10))" title="Back 10 pages">&lt;&lt;</button>`;
+      html += `<button class="page-btn" ${currentPage === 1 ? 'disabled' : ''} onclick="changePage(parseInt(currentPage) - 1)">&larr;</button>`;
+      
+      let startPage = Math.max(1, parseInt(currentPage) - 1);
+      let endPage = Math.min(totalPages, startPage + 2);
+      if (endPage - startPage < 2) startPage = Math.max(1, endPage - 2);
+      
+      if (startPage > 1) {
+        html += `<button class="page-btn" onclick="changePage(1)">1</button>`;
+        if (startPage > 2) html += `<span style="color: var(--text-muted); font-size: 11px; padding: 0 4px;">...</span>`;
+      }
+      for (let i = startPage; i <= endPage; i++) {
+        html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage(${i})">${i}</button>`;
+      }
+      if (endPage < totalPages) {
+        if (endPage < totalPages - 1) html += `<span style="color: var(--text-muted); font-size: 11px; padding: 0 4px;">...</span>`;
+        html += `<button class="page-btn" onclick="changePage(${totalPages})">${totalPages}</button>`;
+      }
+      
+      html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(parseInt(currentPage) + 1)">&rarr;</button>`;
+      html += `<button class="page-btn" ${currentPage === totalPages ? 'disabled' : ''} onclick="changePage(Math.min(${totalPages}, parseInt(currentPage) + 10))" title="Forward 10 pages">&gt;&gt;</button>`;
+      
+      let jumpHtml = `
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; margin-top: 10px; font-size: 11px; color: var(--text-secondary); font-family: var(--font-sans);">
+          <span>Go to:</span>
+          <input type="number" id="page-jump-input" min="1" max="${totalPages}" value="${currentPage}" style="width: 52px; background: var(--bg-main); border: 1px solid var(--border-color); color: var(--text-primary); font-family: var(--font-mono); font-size: 11px; padding: 3px 6px; text-align: center; outline: none; border-radius: 2px;">
+          <span>of ${totalPages}</span>
+          <button onclick="const val = parseInt(document.getElementById('page-jump-input').value); if(val >= 1 && val <= ${totalPages}){ changePage(val); }" style="background: transparent; border: 1px solid var(--border-color); color: var(--text-secondary); padding: 3px 8px; font-size: 10px; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; border-radius: 2px; font-family: var(--font-sans);" onmouseover="this.style.borderColor='var(--text-secondary)';" onmouseout="this.style.borderColor='var(--border-color)';">Jump</button>
+        </div>
+      `;
+      
+      paginationContainer.style.flexDirection = 'column';
+      paginationContainer.style.alignItems = 'center';
+      paginationContainer.innerHTML = `<div style="display: flex; gap: 6px; align-items: center;">${html}</div>${jumpHtml}`;
+      
+      const jumpInput = document.getElementById('page-jump-input');
+      if (jumpInput) {
+        jumpInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') {
+            const val = parseInt(jumpInput.value);
+            if (val >= 1 && val <= totalPages) {
+              changePage(val);
+            }
+          }
+        });
+      }
+    }
+
+    function getSelectedCandidateId() {
+      if (!rightPane) return null;
+      const selectedEl = rightPane.querySelector('[data-candidate-id]');
+      return selectedEl ? selectedEl.getAttribute('data-candidate-id') : null;
+    }
+
+    function selectCandidate(cid) {
+      const cand = candidatesData.find(c => c.candidate_id === cid);
+      if (!cand || !rightPane) return;
+
+      if (candidateList) {
+        const items = candidateList.querySelectorAll('.candidate-item');
+        const indexInPage = candidatesData.findIndex(c => c.candidate_id === cid);
+        items.forEach(el => el.classList.remove('selected'));
+        if (indexInPage !== -1 && items[indexInPage]) items[indexInPage].classList.add('selected');
+      }
+
+      if (window.innerWidth <= 900 && leftPane && sidebarOverlay) {
+        leftPane.classList.remove('open');
+        sidebarOverlay.classList.remove('open');
+      }
+
+      const scorePct = (cand.score * 100).toFixed(2);
+      let gaugeColor = 'var(--gauge-red)';
+      if (scorePct >= 85) gaugeColor = 'var(--gauge-green)';
+      else if (scorePct >= 70) gaugeColor = 'var(--gauge-amber)';
+
+      const circumference = 2 * Math.PI * 45; 
+      const strokeDashoffsetTarget = circumference - (scorePct / 100) * circumference;
+
+      const careerTimeline = cand.career_history.map(job => {
+        const endDate = job.end_date ? job.end_date : 'Present';
+        return `
+          <div class="timeline-item">
+            <div class="timeline-marker"></div>
+            <div class="timeline-header">
+              <div class="timeline-role">${job.title}</div>
+              <div class="timeline-dates">${job.start_date} to ${endDate} (${job.duration_months} mos)</div>
+            </div>
+            <div class="timeline-company">${job.company} — ${job.industry} (${job.company_size})</div>
+            <p class="timeline-desc">${job.description}</p>
+          </div>
+        `;
+      }).join('');
+
+      const skillsList = cand.skills.map(s => {
+        const prof = s.proficiency || "Intermediate";
+        const profClass = `prof-${prof.toLowerCase()}`;
+        const endorsements = s.endorsements !== undefined ? s.endorsements : 0;
+        const duration = s.duration_months !== undefined ? s.duration_months : 12;
+        return `
+          <div class="skill-card">
+            <div class="skill-header">
+              <div class="skill-name">${s.name}</div>
+              <span class="skill-proficiency ${profClass}">${prof}</span>
+            </div>
+            <div class="skill-meta">${duration} months • ${endorsements} endorsements</div>
+          </div>
+        `;
+      }).join('');
+
+      const educationList = cand.education.map(edu => {
+        const inst = edu.institution || 'Unknown';
+        const deg = edu.degree || 'Degree';
+        const field = edu.field_of_study || 'N/A';
+        const startY = edu.start_year || 'N/A';
+        const endY = edu.end_year || 'N/A';
+        const t = edu.tier || '';
+        return `
+          <div class="education-row">
+            <div>
+              <div class="edu-school">${inst}</div>
+              <div class="edu-degree">${deg} in ${field}</div>
+            </div>
+            <div class="edu-meta">
+              <div class="edu-years">${startY} - ${endY}</div>
+              <div class="edu-tier">${t}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Safe signal extraction
+      const profileCompleteness = cand.redrob_signals.profile_completeness_score !== undefined ? cand.redrob_signals.profile_completeness_score : 100;
+      const connectionCount = cand.redrob_signals.connection_count !== undefined ? cand.redrob_signals.connection_count : 150;
+      const willingToRelocate = cand.redrob_signals.willing_to_relocate !== undefined ? cand.redrob_signals.willing_to_relocate : true;
+      const preferredWorkMode = cand.redrob_signals.preferred_work_mode || "Hybrid";
+      const gitHubScore = cand.redrob_signals.github_activity_score !== undefined ? cand.redrob_signals.github_activity_score : -1;
+      const recruiterResponseRate = cand.redrob_signals.recruiter_response_rate !== undefined ? cand.redrob_signals.recruiter_response_rate : 1.0;
+      const avgResponseTimeHours = cand.redrob_signals.avg_response_time_hours !== undefined ? cand.redrob_signals.avg_response_time_hours : 2.0;
+      const interviewCompletionRate = cand.redrob_signals.interview_completion_rate !== undefined ? cand.redrob_signals.interview_completion_rate : 1.0;
+      const salaryRange = cand.redrob_signals.expected_salary_range_inr_lpa || { min: 10, max: 25 };
+
+      rightPane.innerHTML = `
+        <div data-candidate-id="${cand.candidate_id}">
+          <div class="profile-header">
+            <div class="profile-title-block">
+              <h2>${cand.profile.anonymized_name}</h2>
+              <div class="profile-headline">${cand.profile.headline}</div>
+              
+              <div class="profile-meta-grid">
+                <div class="meta-badge">Experience <span class="meta-val">${cand.profile.years_of_experience.toFixed(1)} Yrs</span></div>
+                <div class="meta-badge">Location <span class="meta-val">${cand.profile.location || 'Unknown'}, ${cand.profile.country || 'N/A'}</span></div>
+                <div class="meta-badge">Industry <span class="meta-val">${cand.profile.current_industry || 'N/A'}</span></div>
+                <div class="meta-badge">Notice Period <span class="meta-val">${cand.redrob_signals.notice_period_days || 30} Days</span></div>
+              </div>
+            </div>
+
+            <div class="score-gauge-container">
+              <svg class="gauge-svg" viewBox="0 0 100 100">
+                <circle class="gauge-bg" cx="50" cy="50" r="45"></circle>
+                <circle class="gauge-fill" id="animated-gauge" cx="50" cy="50" r="45" 
+                        style="stroke: ${gaugeColor}; stroke-dasharray: ${circumference}; stroke-dashoffset: ${circumference};">
+                </circle>
+              </svg>
+              <div class="gauge-text-block">
+                <div class="gauge-score">${scorePct}%</div>
+                <div class="gauge-rank">Rank #${cand.rank}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="reasoning-section">
+          <div class="reasoning-title">System Evaluation Details</div>
+          <div class="reasoning-text">"${cand.reasoning}"</div>
+        </div>
+
+        <div>
+          <h3 class="section-title">Summary</h3>
+          <p class="summary-text">${cand.profile.summary || 'No summary declared.'}</p>
+        </div>
+
+        <div>
+          <h3 class="section-title">Career History</h3>
+          <div class="timeline">
+            ${careerTimeline || '<div style="padding: 10px; color: var(--text-secondary); font-size: 11px;">No declared career history.</div>'}
+          </div>
+        </div>
+
+        <div class="details-split-grid">
+          <div>
+            <h3 class="section-title">Verified Core Skills</h3>
+            <div class="skills-grid">
+              ${skillsList || '<div style="padding: 10px; color: var(--text-secondary); font-size: 11px;">No core skills declared.</div>'}
+            </div>
+          </div>
+          <div>
+            <h3 class="section-title">Education</h3>
+            <div>
+              ${educationList || '<div style="padding: 10px; color: var(--text-secondary); font-size: 11px;">No declared education history.</div>'}
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 class="section-title">Behavioral & Platform Signals</h3>
+          <div class="signals-grid">
+            <div class="signal-card-box">
+              <table class="signal-table">
+                <tr><td class="signal-label">Profile Completeness</td><td class="signal-val">${profileCompleteness}%</td></tr>
+                <tr><td class="signal-label">Open to Work</td><td class="signal-val">${cand.redrob_signals.open_to_work_flag ? 'Yes' : 'No'}</td></tr>
+                <tr><td class="signal-label">Connection Count</td><td class="signal-val">${connectionCount}</td></tr>
+                <tr><td class="signal-label">Willing to Relocate</td><td class="signal-val">${willingToRelocate ? 'Yes' : 'No'}</td></tr>
+                <tr><td class="signal-label">Preferred Mode</td><td class="signal-val">${preferredWorkMode}</td></tr>
+              </table>
+            </div>
+            <div class="signal-card-box">
+              <table class="signal-table">
+                <tr><td class="signal-label">GitHub Activity</td><td class="signal-val">${gitHubScore !== -1 ? gitHubScore + '/100' : 'Not Linked'}</td></tr>
+                <tr><td class="signal-label">Recruiter Response Rate</td><td class="signal-val">${(recruiterResponseRate * 100).toFixed(0)}%</td></tr>
+                <tr><td class="signal-label">Average Response Time</td><td class="signal-val">${avgResponseTimeHours.toFixed(1)} hrs</td></tr>
+                <tr><td class="signal-label">Interview Attendance</td><td class="signal-val">${(interviewCompletionRate * 100).toFixed(0)}%</td></tr>
+                <tr><td class="signal-label">Salary Expectation</td><td class="signal-val">${salaryRange.min} - ${salaryRange.max} LPA</td></tr>
+              </table>
+            </div>
+          </div>
+        </div>
+      `;
+      rightPane.scrollTop = 0;
+
+      setTimeout(() => {
+        const gauge = document.getElementById('animated-gauge');
+        if (gauge) gauge.style.strokeDashoffset = strokeDashoffsetTarget;
+      }, 50);
+    }
+
+    if (searchInput) {
+      searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        currentPage = 1;
+        loadCandidates(false);
+      });
+    }
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        activeFilter = e.target.getAttribute('data-filter');
+        currentPage = 1;
+        loadCandidates(false);
+      });
+    });
+
+    function openSidebar() {
+      if(leftPane) leftPane.classList.add('open');
+      if(sidebarOverlay) sidebarOverlay.classList.add('open');
+    }
+    
+    function closeSidebar() {
+      if(leftPane) leftPane.classList.remove('open');
+      if(sidebarOverlay) sidebarOverlay.classList.remove('open');
+    }
+
+    if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', openSidebar);
+    if(closeSidebarBtn) closeSidebarBtn.addEventListener('click', closeSidebar);
+    if(sidebarOverlay) sidebarOverlay.addEventListener('click', closeSidebar);
+
+    // Fetch and populate Job Description
+    async function loadJdText() {
+      const textarea = document.getElementById('jd-text-area');
+      if (!textarea) return;
+      try {
+        const response = await fetch(API_BASE + '/api/jd');
+        if (response.ok) {
+          const data = await response.json();
+          textarea.value = data.text || '';
+        }
+      } catch (err) {
+        console.error('Failed to load Job Description:', err);
+      }
+    }
+
+    if(openJdBtn) openJdBtn.addEventListener('click', () => { 
+      if(jdModal) {
+        jdModal.classList.add('open'); 
+        loadJdText();
+      }
+    });
+    if(closeJdBtn) closeJdBtn.addEventListener('click', () => { if(jdModal) jdModal.classList.remove('open'); });
+    
+    const cancelJdBtn = document.getElementById('cancel-jd-btn');
+    if (cancelJdBtn) cancelJdBtn.addEventListener('click', () => {
+      if (jdModal) jdModal.classList.remove('open');
+    });
+
+    if(jdModal) {
+      jdModal.addEventListener('click', (e) => {
+        if (e.target === jdModal) jdModal.classList.remove('open');
+      });
+    }
+
+    // Dropzone setup
+    const dropzone = document.getElementById('jd-dropzone');
+    const jdFileInput = document.getElementById('jd-file-input');
+    const jdDropzoneText = document.getElementById('jd-dropzone-text');
+    const jdTextArea = document.getElementById('jd-text-area');
+
+    if (dropzone && jdFileInput) {
+      dropzone.addEventListener('click', () => {
+        jdFileInput.click();
+      });
+
+      jdFileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+          handleJdFile(e.target.files[0]);
+        }
+      });
+
+      dropzone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropzone.classList.add('dragover');
+      });
+
+      dropzone.addEventListener('dragleave', () => {
+        dropzone.classList.remove('dragover');
+      });
+
+      dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          handleJdFile(e.dataTransfer.files[0]);
+        }
+      });
+    }
+
+    async function handleJdFile(file) {
+      if (!file) return;
+      
+      if (jdDropzoneText) {
+        jdDropzoneText.innerHTML = `<span style="color: var(--accent);">Parsing ${file.name}...</span>`;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/api/parse-jd?filename=${encodeURIComponent(file.name)}`, {
+          method: 'POST',
+          body: file
+        });
+        
+        if (!response.ok) {
+          const errData = await response.json();
+          throw new Error(errData.error || 'Failed to parse file.');
+        }
+        
+        const data = await response.json();
+        if (jdTextArea) {
+          jdTextArea.value = data.text || '';
+        }
+        if (jdDropzoneText) {
+          jdDropzoneText.innerHTML = `<span style="color: var(--gauge-green);">Successfully parsed ${file.name}!</span>`;
+          setTimeout(() => {
+            jdDropzoneText.innerText = 'Drag & drop a new JD (PDF or Word) here to auto-fill text';
+          }, 3000);
+        }
+      } catch (err) {
+        alert(err.message);
+        if (jdDropzoneText) {
+          jdDropzoneText.innerText = 'Drag & drop a new JD (PDF or Word) here to auto-fill text';
+        }
+      }
+    }
+
+    // Update and Recalculate
+    const updateRecalculateBtn = document.getElementById('update-recalculate-jd-btn');
+    if (updateRecalculateBtn) {
+      updateRecalculateBtn.addEventListener('click', async () => {
+        if (!jdTextArea) return;
+        const text = jdTextArea.value.trim();
+        if (!text) {
+          alert('Job description text cannot be empty.');
+          return;
+        }
+
+        const processingOverlay = document.getElementById('processing-overlay');
+        const processingMessage = document.getElementById('processing-message');
+        
+        if (processingOverlay) {
+          if (processingMessage) processingMessage.innerText = 'Analyzing job description and recalculating candidate fits...';
+          processingOverlay.removeAttribute('hidden');
+        }
+
+        try {
+          const response = await fetch(API_BASE + '/api/jd', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+          });
+
+          if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Failed to update job description.');
+          }
+
+          currentPage = 1;
+          await loadCandidates(false);
+          
+          if (jdModal) jdModal.classList.remove('open');
+          
+        } catch (err) {
+          alert(err.message);
+        } finally {
+          if (processingOverlay) processingOverlay.setAttribute('hidden', 'true');
+        }
+      });
+    }
+
+    if (scoreFilterSelect) {
+      scoreFilterSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'custom') {
+          const val = prompt('Enter minimum score percentage (0-100):');
+          const numVal = parseFloat(val);
+          if (!isNaN(numVal) && numVal >= 0 && numVal <= 100) {
+            let opt = Array.from(scoreFilterSelect.options).find(o => o.value == numVal);
+            if (!opt) {
+              opt = document.createElement('option');
+              opt.value = numVal;
+              opt.textContent = `Score \u2265 ${numVal}%`;
+              scoreFilterSelect.insertBefore(opt, scoreFilterSelect.options[scoreFilterSelect.options.length - 1]);
+            }
+            scoreFilterSelect.value = numVal;
+            minScoreFilter = numVal;
+          } else {
+            scoreFilterSelect.value = '0';
+            minScoreFilter = 0;
+          }
+        } else {
+          minScoreFilter = parseFloat(e.target.value) || 0;
+        }
+        currentPage = 1;
+        loadCandidates(false);
+      });
+    }
+
+    const exportPdfBtn = document.getElementById('export-pdf-btn');
+    const exportModal = document.getElementById('export-modal');
+    const closeExportBtn = document.getElementById('close-export-btn');
+    const cancelExportBtn = document.getElementById('cancel-export-btn');
+    const confirmExportBtn = document.getElementById('confirm-export-btn');
+
+    const exportScoreSelect = document.getElementById('export-score-select');
+    const exportScoreCustomGroup = document.getElementById('export-score-custom-group');
+    const exportScoreInput = document.getElementById('export-score-input');
+
+    const exportLimitSelect = document.getElementById('export-limit-select');
+    const exportLimitCustomGroup = document.getElementById('export-limit-custom-group');
+    const exportLimitInput = document.getElementById('export-limit-input');
+
+    const exportOrientation = document.getElementById('export-orientation');
+    const exportPaperSize = document.getElementById('export-paper-size');
+
+    if (exportScoreSelect && exportScoreCustomGroup) {
+      exportScoreSelect.addEventListener('change', () => {
+        exportScoreCustomGroup.style.display = exportScoreSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
+
+    if (exportLimitSelect && exportLimitCustomGroup) {
+      exportLimitSelect.addEventListener('change', () => {
+        exportLimitCustomGroup.style.display = exportLimitSelect.value === 'custom' ? 'flex' : 'none';
+      });
+    }
+
+    if (exportPdfBtn && exportModal) {
+      exportPdfBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        exportModal.classList.add('open');
+      });
+    }
+
+    if (closeExportBtn && exportModal) {
+      closeExportBtn.addEventListener('click', () => exportModal.classList.remove('open'));
+    }
+
+    if (cancelExportBtn && exportModal) {
+      cancelExportBtn.addEventListener('click', () => exportModal.classList.remove('open'));
+    }
+
+    if (exportModal) {
+      exportModal.addEventListener('click', (e) => {
+        if (e.target === exportModal) exportModal.classList.remove('open');
+      });
+    }
+
+    if (confirmExportBtn) {
+      confirmExportBtn.addEventListener('click', () => {
+        exportShortlistPDF();
+      });
+    }
+
+    const exportXlsxBtn = document.getElementById('export-xlsx-btn');
+    if (exportXlsxBtn) {
+      exportXlsxBtn.addEventListener('click', () => {
+        exportShortlistXLSX();
+      });
+    }
+
+    async function exportShortlistXLSX() {
+      let threshold = 75;
+      if (exportScoreSelect && exportScoreSelect.value === 'custom') {
+        threshold = parseFloat(exportScoreInput.value) || 75;
+      } else if (exportScoreSelect) {
+        threshold = parseFloat(exportScoreSelect.value);
+      }
+
+      let limitValue = -1;
+      if (exportLimitSelect && exportLimitSelect.value === 'custom') {
+        limitValue = parseInt(exportLimitInput.value) || -1;
+      } else if (exportLimitSelect) {
+        limitValue = parseInt(exportLimitSelect.value);
+      }
+
+      try {
+        if (importStatus) {
+          importStatus.style.display = 'block';
+          importStatus.style.color = 'var(--text-secondary)';
+          importStatus.innerText = 'Generating Excel sheet...';
+        }
+
+        if (exportModal) exportModal.classList.remove('open');
+
+        const url = `${API_BASE}/api/export-xlsx?min_score=${threshold}&limit=${limitValue}`;
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'synapse_shortlist.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        if (importStatus) {
+          importStatus.style.color = 'var(--gauge-green)';
+          importStatus.innerText = 'Excel exported successfully!';
+          setTimeout(() => { importStatus.style.display = 'none'; }, 3000);
+        }
+      } catch (err) {
+        alert(err.message);
+        if (importStatus) importStatus.style.display = 'none';
+      }
+    }
+
+    async function exportShortlistPDF() {
+      let threshold = 75;
+      if (exportScoreSelect && exportScoreSelect.value === 'custom') {
+        threshold = parseFloat(exportScoreInput.value) || 75;
+      } else if (exportScoreSelect) {
+        threshold = parseFloat(exportScoreSelect.value);
+      }
+
+      let limitValue = -1;
+      if (exportLimitSelect && exportLimitSelect.value === 'custom') {
+        limitValue = parseInt(exportLimitInput.value) || -1;
+      } else if (exportLimitSelect) {
+        limitValue = parseInt(exportLimitSelect.value);
+      }
+
+      const orientation = (exportOrientation && exportOrientation.value) || 'portrait';
+      const paperSize = (exportPaperSize && exportPaperSize.value) || 'A4';
+
+      try {
+        if (importStatus) {
+          importStatus.style.display = 'block';
+          importStatus.style.color = 'var(--text-secondary)';
+          importStatus.innerText = 'Generating printable PDF summary...';
+        }
+
+        const response = await fetch(`${API_BASE}/api/candidates?limit=-1&min_score=${threshold}`);
+        if (!response.ok) throw new Error('Failed to fetch full shortlist.');
+
+        const data = await response.json();
+        let shortlisted = data.candidates || [];
+        if (importStatus) importStatus.style.display = 'none';
+
+        if (limitValue > 0 && shortlisted.length > limitValue) {
+          shortlisted = shortlisted.slice(0, limitValue);
+        }
+
+        if (shortlisted.length === 0) {
+          alert(`No candidates match the score threshold \u2265 ${threshold}%.`);
+          return;
+        }
+
+        if (exportModal) exportModal.classList.remove('open');
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          alert('Please allow popups to export the candidate list.');
+          return;
+        }
+
+        let rows = shortlisted.map(c => {
+          const skillsList = c.skills.map(s => s.name).slice(0, 6).join(', ');
+          return `
+            <tr style="border-bottom: 1px solid #e2e8f0; page-break-inside: avoid;">
+              <td style="padding: 12px 8px; font-family: monospace; font-size: 12px; font-weight: bold; text-align: center;">#${c.rank}</td>
+              <td style="padding: 12px 8px;">
+                <div style="font-weight: bold; font-size: 13px; color: #1e293b;">${c.profile.anonymized_name}</div>
+                <div style="font-size: 11px; color: #64748b; margin-top: 2px;">${c.profile.current_title} at ${c.profile.current_company}</div>
+              </td>
+              <td style="padding: 12px 8px; font-family: monospace; font-size: 12px; font-weight: bold; text-align: center; color: #0f766e;">${(c.score * 100).toFixed(2)}%</td>
+              <td style="padding: 12px 8px; font-size: 12px; text-align: center;">${c.profile.years_of_experience.toFixed(1)} Yrs</td>
+              <td style="padding: 12px 8px; font-size: 12px; text-align: center;">${c.redrob_signals.notice_period_days} Days</td>
+              <td style="padding: 12px 8px; font-size: 11px; color: #475569;">${skillsList}</td>
+            </tr>
+            <tr style="border-bottom: 2px solid #cbd5e1; page-break-inside: avoid;">
+              <td colspan="6" style="padding: 8px 12px 14px 12px; font-size: 11.5px; font-style: italic; color: #334155; background-color: #f8fafc; line-height: 1.5;">
+                <strong>System Evaluation:</strong> "${c.reasoning}"
+              </td>
+            </tr>
+          `;
+        }).join('');
+
+        const docHtml = `
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Synapse Candidate Shortlist - Score \u2265 ${threshold}%</title>
+            <style>
+              @media print {
+                body { background-color: #fff; color: #000; margin: 0; padding: 20px; font-family: 'Inter', sans-serif; }
+                @page { size: ${paperSize} ${orientation}; margin: 15mm; }
+              }
+              body { font-family: 'Inter', sans-serif; color: #1e293b; background-color: #fff; max-width: ${orientation === 'landscape' ? '100%' : '900px'}; margin: 0 auto; padding: 40px 20px; }
+              table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+              th { border-bottom: 2px solid #1e293b; padding: 10px 8px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; text-align: left; }
+            </style>
+          </head>
+          <body onload="window.print();">
+            <div style="border-bottom: 3px double #1e293b; padding-bottom: 16px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end;">
+              <div>
+                <h1 style="font-size: 26px; font-weight: bold; margin: 0 0 4px 0; color: #000; letter-spacing: 0.5px;">Synapse Candidate Shortlist</h1>
+                <p style="font-size: 11px; color: #64748b; margin: 0; text-transform: uppercase; letter-spacing: 1px;">Intelligent Matching Summary Report</p>
+              </div>
+              <div style="text-align: right; font-family: monospace; font-size: 11px; color: #64748b;">
+                <div>Threshold: \u2265 ${threshold}%</div>
+                <div>Count: ${shortlisted.length} Candidates</div>
+                <div>Layout: ${orientation.charAt(0).toUpperCase() + orientation.slice(1)} (${paperSize})</div>
+                <div>Date: ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+              </div>
+            </div>
+            <table>
+              <thead>
+                <tr>
+                  <th style="width: 8%; text-align: center;">Rank</th>
+                  <th style="width: 32%;">Candidate Name / ID</th>
+                  <th style="width: 12%; text-align: center;">Match Score</th>
+                  <th style="width: 10%; text-align: center;">Experience</th>
+                  <th style="width: 12%; text-align: center;">Notice Period</th>
+                  <th style="width: 26%;">Verified Skills</th>
+                </tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </body>
+          </html>
+        `;
+
+        printWindow.document.write(docHtml);
+        printWindow.document.close();
+      } catch (err) {
+        printDebugError(err);
+      }
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        if(jdModal) jdModal.classList.remove('open');
+        if(exportModal) exportModal.classList.remove('open');
+        closeSidebar();
+      }
+    });
+
+    function resetSearchUI() {
+      currentPage = 1;
+      searchQuery = '';
+      activeFilter = 'all';
+      minScoreFilter = 0;
+      
+      filterBtns.forEach(b => b.classList.remove('active'));
+      const allBtn = Array.from(filterBtns).find(b => b.getAttribute('data-filter') === 'all');
+      if (allBtn) allBtn.classList.add('active');
+      
+      if(searchInput) searchInput.value = '';
+      if (scoreFilterSelect) scoreFilterSelect.value = '0';
+    }
+
+    function showProcessingOverlay(message) {
+      const processingOverlay = document.getElementById('processing-overlay');
+      const processingMessage = document.getElementById('processing-message');
+      if (processingOverlay && processingMessage) {
+        processingMessage.textContent = message;
+        processingOverlay.style.display = 'flex';
+      }
+    }
+
+    function hideProcessingOverlay() {
+      const processingOverlay = document.getElementById('processing-overlay');
+      if (processingOverlay) processingOverlay.style.display = 'none';
+    }
+
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('empty-state-upload');
+      const centerInput = document.getElementById('center-file-input');
+      
+      if (!dropZone) return;
+      
+      if (centerInput) {
+        centerInput.addEventListener('change', (e) => {
+          const file = e.target.files[0];
+          if (file) handleUploadProcess(file, false);
+        });
+      }
+      
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--accent)';
+        dropZone.style.backgroundColor = 'var(--bg-hover)';
+      });
+      
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.style.borderColor = 'var(--border-color)';
+        dropZone.style.backgroundColor = 'var(--bg-pane)';
+      });
+      
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = 'var(--border-color)';
+        dropZone.style.backgroundColor = 'var(--bg-pane)';
+        const file = e.dataTransfer.files[0];
+        if (file) handleUploadProcess(file, false);
+      });
+    }
+
+    async function handleUploadProcess(file, replaceMode) {
+      // Validate file extension
+      const fileName = file.name || "";
+      const dotIndex = fileName.lastIndexOf('.');
+      const ext = dotIndex !== -1 ? fileName.slice(dotIndex).toLowerCase() : "";
+      if (ext !== '.json' && ext !== '.jsonl' && ext !== '.gz' && ext !== '.zip') {
+        if (importStatus) {
+          importStatus.style.display = 'block';
+          importStatus.style.color = '#ff6b6b';
+          importStatus.innerText = 'Error: Invalid file format type. Allowed formats: JSON, JSONL, GZ, ZIP';
+        }
+        alert("Error: Invalid file format type. Allowed formats: JSON, JSONL, GZ, ZIP");
+        return;
+      }
+
+      if (importStatus) {
+        importStatus.style.display = 'block';
+        importStatus.style.color = 'var(--text-secondary)';
+        importStatus.innerText = 'Uploading and processing ' + file.name + '...';
+      }
+      showProcessingOverlay(`Uploading and processing ${file.name}...`);
+
+      if (candidateList) {
+        candidateList.innerHTML = `
+          <div style="padding: 80px 20px; text-align: center; color: var(--text-secondary); font-family: var(--font-sans);">
+            <div class="spinner-monotonic"></div>
+            <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.5px; color: var(--text-primary);">Evaluating candidates list...</div>
+            <div style="font-size: 11px; color: var(--text-secondary); margin-top: 6px; font-family: var(--font-mono)">${file.name}</div>
+          </div>
+        `;
+      }
+      if (paginationContainer) paginationContainer.innerHTML = '';
+
+      let isPollingStarted = false;
+      try {
+        let fileToUpload = file;
+        let uploadFilename = file.name;
+
+        // Perform transparent client-side Gzip compression for raw JSON/JSONL files
+        if (ext === '.json' || ext === '.jsonl') {
+          showProcessingOverlay(`Compressing file transparently in browser to speed up transfer...`);
+          try {
+            if (typeof CompressionStream !== 'undefined') {
+              const stream = file.stream().pipeThrough(new CompressionStream('gzip'));
+              const response = new Response(stream);
+              fileToUpload = await response.blob();
+              uploadFilename = file.name + '.gz';
+            }
+          } catch (compressErr) {
+            console.warn("Client-side Gzip compression failed, falling back to raw upload:", compressErr);
+            fileToUpload = file;
+            uploadFilename = file.name;
+          }
+        }
+
+        const uploadId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+        
+        const CHUNK_SIZE = 10 * 1024 * 1024; // 10MB chunks
+        const totalChunks = Math.ceil(fileToUpload.size / CHUNK_SIZE);
+        let lastTaskId = uploadId;
+        
+        for (let i = 0; i < totalChunks; i++) {
+          const start = i * CHUNK_SIZE;
+          const end = Math.min(fileToUpload.size, start + CHUNK_SIZE);
+          const chunk = fileToUpload.slice(start, end);
+          
+          const progressPct = Math.round((i / totalChunks) * 100);
+          showProcessingOverlay(`Uploading file... chunk ${i + 1} of ${totalChunks} (${progressPct}%)`);
+          
+          const url = `${API_BASE}/api/upload-chunk?upload_id=${uploadId}&chunk_index=${i}&total_chunks=${totalChunks}&filename=${encodeURIComponent(uploadFilename)}&replace=${replaceMode}`;
+          const response = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/octet-stream' },
+            body: chunk
+          });
+          
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || `Failed to upload chunk ${i + 1} of ${totalChunks}`);
+          }
+          
+          const resData = await response.json();
+          if (resData.task_id) {
+            lastTaskId = resData.task_id;
+          }
+        }
+        
+        isPollingStarted = true;
+        pollImportStatus(lastTaskId, file.name);
+      } catch (err) {
+          if (importStatus) {
+            importStatus.style.display = 'block';
+            importStatus.style.color = '#ff6b6b';
+            importStatus.innerText = `Error: ${err.message}`;
+          }
+          alert(`Upload failed: ${err.message}`);
+          hideProcessingOverlay();
+          await loadCandidates(false);
+        } finally {
+          if (!isPollingStarted) {
+            hideProcessingOverlay();
+          }
+          if (importFileInput) importFileInput.value = '';
+        }
+      }
+
+      function pollImportStatus(taskId, filename) {
+        showProcessingOverlay(`Processing ${filename}... Evaluating metrics natively in background execution.`);
+        
+        const intervalId = setInterval(async () => {
+          try {
+            const response = await fetch(`${API_BASE}/api/import-status?task_id=${taskId}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+
+            if (data.status === 'completed') {
+              clearInterval(intervalId);
+              hideProcessingOverlay();
+              
+              if (importStatus) {
+                importStatus.style.color = 'var(--text-primary)';
+                importStatus.innerText = `Successfully imported and ranked ${filename}.`;
+                setTimeout(() => { importStatus.style.display = 'none'; }, 4000);
+              }
+              
+              resetSearchUI();
+              await loadCandidates(false);
+            } else if (data.status === 'processing') {
+              // Update loader message dynamically with progress percentage
+              const loaderMsg = document.getElementById('processing-message');
+              if (loaderMsg) {
+                loaderMsg.innerText = `Parsing lines... Compiled matrix state calculation score at ${data.progress || 0}%`;
+              }
+            } else if (data.status === 'failed') {
+              clearInterval(intervalId);
+              hideProcessingOverlay();
+              
+              if (importStatus) {
+                importStatus.style.display = 'block';
+                importStatus.style.color = '#ff6b6b';
+                importStatus.innerText = `Ingestion processing error: ${data.error}`;
+              }
+              alert(`Parsing Ingestion Aborted: ${data.error}`);
+              await loadCandidates(false);
+            }
+          } catch (pollErr) {
+            console.warn("Polling network frame tick dropped:", pollErr);
+          }
+        }, 1500); // query progress status frames every 1.5s
+      }
+
+    if (importFileInput) {
+      importFileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const replaceMode = replaceCheckbox ? replaceCheckbox.checked : false;
+        handleUploadProcess(file, replaceMode);
+      });
+    }
+
+    function updatePreviewMockup() {
+      const orientation = (exportOrientation && exportOrientation.value) || 'portrait';
+      const paperSize = (exportPaperSize && exportPaperSize.value) || 'A4';
+      const mock = document.getElementById('print-preview-mock');
+      const label = document.getElementById('preview-page-label');
+      
+      if (mock && label) {
+        if (orientation === 'landscape') {
+          mock.classList.remove('portrait');
+          mock.classList.add('landscape');
+        } else {
+          mock.classList.remove('landscape');
+          mock.classList.add('portrait');
+        }
+        label.textContent = `${paperSize} ${orientation.charAt(0).toUpperCase() + orientation.slice(1)}`;
+      }
+    }
+
+    if (exportOrientation) {
+      exportOrientation.addEventListener('change', updatePreviewMockup);
+    }
+    if (exportPaperSize) {
+      exportPaperSize.addEventListener('change', updatePreviewMockup);
+    }
+
+    if (resetDbBtn) {
+      resetDbBtn.addEventListener('click', async () => {
+        if (importStatus) {
+          importStatus.style.display = 'block';
+          importStatus.style.color = 'var(--text-secondary)';
+          importStatus.innerText = 'Resetting database...';
+        }
+        showProcessingOverlay('Resetting candidate database...');
+        
+        if (candidateList) {
+          candidateList.innerHTML = `
+            <div style="padding: 80px 20px; text-align: center; color: var(--text-secondary); font-family: var(--font-sans);">
+              <div class="spinner-monotonic"></div>
+              <div style="font-size: 13px; font-weight: 500; letter-spacing: 0.5px; color: var(--text-primary);">Resetting candidate database...</div>
+            </div>
+          `;
+        }
+        if (paginationContainer) paginationContainer.innerHTML = '';
+
+        try {
+          const response = await fetch(API_BASE + '/api/reset', { method: 'POST' });
+          if (!response.ok) {
+            const errData = await response.json().catch(() => ({}));
+            throw new Error(errData.error || 'Server error during reset.');
+          }
+          
+          const data = await response.json();
+          candidatesData = data.candidates || [];
+          totalCandidatesCount = data.total_count || 0;
+          totalPagesCount = data.total_pages || 1;
+          
+          if (importStatus) {
+            importStatus.style.color = 'var(--text-primary)';
+            importStatus.innerText = 'Database cleared successfully.';
+            setTimeout(() => { importStatus.style.display = 'none'; }, 3000);
+          }
+
+          resetSearchUI();
+          await loadCandidates(false);
+        } catch (err) {
+          if (importStatus) {
+            importStatus.style.color = '#ff6b6b';
+            importStatus.innerText = `Reset failed: ${err.message}`;
+          }
+          await loadCandidates(false);
+        } finally {
+          hideProcessingOverlay();
+        }
+      });
+    }
+
+    // Load initial context securely without hard animations loop hanging
+    loadCandidates(false);
+  </script>
+</body>
+</html>
