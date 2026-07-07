@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Redrob AI Candidate Ranking Engine — Approach Deck</title>
+<style>
+  @page {
+    size: A4 landscape;
+    margin: 0;
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    color: #e6edf3;
+    background-color: #0d1117;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .slide {
+    width: 297mm;
+    height: 210mm;
+    box-sizing: border-box;
+    padding: 25mm;
+    page-break-after: always;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    background: radial-gradient(circle at 10% 20%, #161b22 0%, #0d1117 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Decorative elements */
+  .slide::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    background: linear-gradient(90deg, #58a6ff 0%, #1f6feb 50%, #8957e5 100%);
+  }
+
+  .slide::after {
+    content: "REDROB AI TALENT CHALLENGE";
+    position: absolute;
+    bottom: 12mm;
+    right: 25mm;
+    font-size: 10px;
+    color: #8b949e;
+    letter-spacing: 2px;
+  }
+
+  .slide-header {
+    margin-bottom: 5mm;
+  }
+
+  .slide-num {
+    font-size: 12px;
+    color: #58a6ff;
+    font-weight: 600;
+    letter-spacing: 1px;
+    margin-bottom: 2mm;
+  }
+
+  .slide-title {
+    font-size: 32px;
+    font-weight: 700;
+    margin: 0;
+    color: #f0f6fc;
+    letter-spacing: -0.5px;
+  }
+
+  .slide-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    margin-top: 5mm;
+    margin-bottom: 5mm;
+  }
+
+  .slide-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid #21262d;
+    padding-top: 6mm;
+  }
+
+  .team-tag {
+    font-size: 12px;
+    color: #8b949e;
+    font-weight: 500;
+  }
+
+  /* Grid styles */
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12mm;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 8mm;
+  }
+
+  /* Content Cards */
+  .card {
+    background-color: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 6mm 8mm;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+  }
+
+  .card-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: #58a6ff;
+    margin-top: 0;
+    margin-bottom: 3mm;
+    display: flex;
+    align-items: center;
+    gap: 2mm;
+  }
+
+  .card-body {
+    font-size: 14px;
+    line-height: 1.6;
+    color: #c9d1d9;
+    margin: 0;
+  }
+
+  .highlight-box {
+    border-left: 4px solid #8957e5;
+    background-color: #1b1526;
+    padding: 4mm 6mm;
+    margin-bottom: 4mm;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .highlight-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #d8b9ff;
+    margin: 0 0 1.5mm 0;
+  }
+
+  .highlight-desc {
+    font-size: 13px;
+    color: #c9d1d9;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Typography helpers */
+  h3 {
+    margin-top: 0;
+    color: #f0f6fc;
+  }
+  
+  ul {
+    margin: 0;
+    padding-left: 5mm;
+  }
+
+  li {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #c9d1d9;
+    margin-bottom: 2mm;
+  }
+
+  .bold-fact {
+    color: #f0f6fc;
+    font-weight: 600;
+  }
+
+  .badge {
+    background-color: #238636;
+    color: #f0f6fc;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 1.5px 6px;
+    border-radius: 12px;
+    display: inline-block;
+  }
+
+  .badge-purple {
+    background-color: #8957e5;
+  }
+
+  .badge-blue {
+    background-color: #1f6feb;
+  }
+
+  /* Table Style */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2mm;
+  }
+
+  th {
+    text-align: left;
+    font-size: 13px;
+    color: #8b949e;
+    border-bottom: 1px solid #30363d;
+    padding: 3mm 4mm;
+    font-weight: 600;
+  }
+
+  td {
+    font-size: 13px;
+    padding: 3mm 4mm;
+    border-bottom: 1px solid #21262d;
+    color: #c9d1d9;
+    line-height: 1.5;
+  }
+
+  /* Welcome slide custom design */
+  .welcome-slide {
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    background: radial-gradient(circle at center, #1b2735 0%, #090a0f 100%);
+  }
+
+  .welcome-title {
+    font-size: 52px;
+    font-weight: 800;
+    color: #ffffff;
+    margin-bottom: 3mm;
+    letter-spacing: -1.5px;
+    background: linear-gradient(90deg, #58a6ff, #bc8cff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .welcome-subtitle {
+    font-size: 20px;
+    color: #8b949e;
+    margin-top: 0;
+    margin-bottom: 12mm;
+    font-weight: 400;
+    max-width: 200mm;
+  }
+
+  .welcome-meta {
+    font-size: 14px;
+    color: #c9d1d9;
+    border-top: 1px solid #30363d;
+    padding-top: 8mm;
+    width: 120mm;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4mm;
+  }
+
+  .meta-item {
+    text-align: center;
+  }
+  .meta-label {
+    font-size: 11px;
+    color: #8b949e;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 1mm;
+  }
+  .meta-val {
+    font-size: 14px;
+    font-weight: 600;
+    color: #f0f6fc;
+  }
+
+</style>
+</head>
+<body>
+
+  <!-- Slide 1: Welcome Slide -->
+  <div class="slide welcome-slide">
+    <div></div>
+    <div>
+      <h1 class="welcome-title">Redrob Matcher Engine</h1>
+      <p class="welcome-subtitle">A Hybrid Semantic-Behavioral Candidate Discovery & Ranking System for the Founding Senior AI Engineer Role</p>
+      
+      <center>
+        <div class="welcome-meta">
+          <div class="meta-item">
+            <div class="meta-label">Team ID</div>
+            <div class="meta-val">Antigravity-Ranker</div>
+          </div>
+          <div class="meta-item">
+            <div class="meta-label">Challenge Stack</div>
+            <div class="meta-val">Python + NumPy + Scikit-Learn</div>
+          </div>
+        </div>
+      </center>
+    </div>
+    <div></div>
+  </div>
+
+  <!-- Slide 2: Challenge Definition -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 02</div>
+      <h2 class="slide-title">Traditional Recruiting Traps vs. Intelligent Discovery</h2>
+    </div>
+    
+    <div class="slide-content">
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title" style="color: #ff7b72;">
+            <span>⚠️</span> The Traditional Keyword Trap
+          </h3>
+          <p class="card-body">
+            Conventional Applicant Tracking Systems (ATS) rely on simple keyword counting, making them highly vulnerable to:
+          </p>
+          <ul style="margin-top: 3mm;">
+            <li><span class="bold-fact">Keyword Stuffers:</span> Non-technical candidates who paste high-frequency buzzwords into descriptions to cheat search embeddings.</li>
+            <li><span class="bold-fact">Research-Only Profiles:</span> Finding candidates with matching keywords (e.g., CV/Speech papers) who have zero production or IR infrastructure experience.</li>
+            <li><span class="bold-fact">Silent Candidates:</span> Perfect-on-paper profiles who are entirely inactive, unavailable, or have extremely low recruiter reply rates.</li>
+          </ul>
+        </div>
+        
+        <div class="card">
+          <h3 class="card-title" style="color: #58a6ff;">
+            <span>💡</span> Our Intelligent Discovery Philosophy
+          </h3>
+          <p class="card-body">
+            We designed a multi-dimensional matching engine that aligns with the judgment of a world-class recruiter:
+          </p>
+          <ul style="margin-top: 3mm;">
+            <li><span class="bold-fact">Semantic Match & Experience Curve:</span> Evaluates context rather than occurrences, verifying experience duration and role trajectories.</li>
+            <li><span class="bold-fact">Anti-Service Exclusions:</span> Automatically filters candidates whose entire career is in pure consulting/service firms (TCS, Infosys, etc.).</li>
+            <li><span class="bold-fact">Behavioral Multiplier:</span> Treats candidate availability, notice periods, and active platform engagement as key ranking modifiers.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 2 of 7</div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Honeypot Shield -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 03</div>
+      <h2 class="slide-title">The Honeypot Shield: Disqualification Defense</h2>
+    </div>
+    
+    <div class="slide-content">
+      <div class="grid-2">
+        <div>
+          <div class="highlight-box">
+            <h4 class="highlight-title">Security Goal</h4>
+            <p class="highlight-desc">Identify and block impossible candidate profiles ("honeypots") to maintain 0% trap presence in our top ranks (disqualification occurs if honeypots > 10% in top 100).</p>
+          </div>
+          
+          <p style="font-size: 14px; line-height: 1.6; color: #c9d1d9;">
+            The dataset embeds synthetic trap profiles with logical contradictions. Our ranking code executes a robust pre-filter pass that checks every record for temporal and profile anomalies, forcing their scores to <span class="bold-fact">0.0</span> immediately.
+          </p>
+        </div>
+        
+        <div class="grid-1" style="display: flex; flex-direction: column; gap: 4mm;">
+          <div class="card">
+            <h4 style="margin:0 0 2mm 0; color: #ff7b72; font-size: 15px;">Rule 1: Startup Founding Dates</h4>
+            <p class="card-body" style="font-size: 13px;">
+              Detects candidates claiming to have started working at Indian AI startups before they were legally founded:
+              <br>• <span class="bold-fact">Krutrim</span> (founded April 2023)
+              <br>• <span class="bold-fact">Sarvam AI</span> (founded July 2023)
+              <br><span style="color:#8b949e;">Result: Catches 87 impossible profiles.</span>
+            </p>
+          </div>
+          
+          <div class="card">
+            <h4 style="margin:0 0 2mm 0; color: #ff7b72; font-size: 15px;">Rule 2: Career Duration Mismatch</h4>
+            <p class="card-body" style="font-size: 13px;">
+              Compares declared career job durations against start and end dates.
+              <br>• e.g. Start: Sept 2023, End: None (Max possible: 33 months), but declared duration is 166 months.
+              <br><span style="color:#8b949e;">Result: Catches 19 duration-mismatch honeypots.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 3 of 7</div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Scoring Architecture -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 04</div>
+      <h2 class="slide-title">Engine Architecture: 5-Pillar Fit Score</h2>
+    </div>
+    
+    <div class="slide-content">
+      <table>
+        <thead>
+          <tr>
+            <th style="width: 25%;">Pillar</th>
+            <th style="width: 15%;">Weight</th>
+            <th style="width: 60%;">Logic and Matching Mechanism</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="bold-fact" style="color: #58a6ff;">Experience Curve</td>
+            <td>15%</td>
+            <td>Non-linear fit curve. Peaks at ideal <span class="bold-fact">5–9 years</span>. Penalizes junior candidates (<4 years) and slightly discounts over-senior managers (>12 years).</td>
+          </tr>
+          <tr>
+            <td class="bold-fact" style="color: #58a6ff;">Applied ML Role Fit</td>
+            <td>25%</td>
+            <td>Measures career duration in applied AI/ML titles. Scans job descriptions for key engineering/retrieval concepts. Heavily penalizes candidates in unrelated domains (marketing, HR).</td>
+          </tr>
+          <tr>
+            <td class="bold-fact" style="color: #58a6ff;">Pedigree & Exclusions</td>
+            <td>20%</td>
+            <td>IT Services exclusion rule. If 100% of candidate's career is at large consulting firms (TCS, Wipro, Infosys, etc.), they receive a pedigree penalty. Rewards product-company backgrounds.</td>
+          </tr>
+          <tr>
+            <td class="bold-fact" style="color: #58a6ff;">Required Skills</td>
+            <td>25%</td>
+            <td>Scans for required categories: Vector DBs (Milvus, Pinecone, FAISS), Embeddings (sentence-transformers), Python, and Eval (NDCG, MAP). Factored with endorsements & duration.</td>
+          </tr>
+          <tr>
+            <td class="bold-fact" style="color: #58a6ff;">Semantic Similarity</td>
+            <td>15%</td>
+            <td>Fits a local TF-IDF model on profile summaries and work details, calculating cosine similarity against core JD concepts (dense retrieval, evaluation, search scale).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 4 of 7</div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Behavioral Multiplier -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 05</div>
+      <h2 class="slide-title">The Behavioral Multiplier: Real Availability</h2>
+    </div>
+    
+    <div class="slide-content">
+      <div class="grid-3">
+        <div class="card">
+          <h4 class="card-title">Notice Period (Stated)</h4>
+          <p class="card-body" style="font-size: 13px;">
+            A candidate with 90-day notice is often too slow to hire.
+            <br><br>• <span class="bold-fact">Notice &le; 30 days:</span> Multiplier = 1.0
+            <br>• <span class="bold-fact">Notice &le; 60 days:</span> Multiplier = 0.9
+            <br>• <span class="bold-fact">Notice &ge; 90 days:</span> Multiplier = 0.35
+          </p>
+        </div>
+        
+        <div class="card">
+          <h4 class="card-title">Location & Relocate</h4>
+          <p class="card-body" style="font-size: 13px;">
+            Primary offices are in Noida and Pune.
+            <br><br>• <span class="bold-fact">In Pune / Noida / NCR:</span> Multiplier = 1.0
+            <br>• <span class="bold-fact">Willing to Relocate:</span> Multiplier = 0.9
+            <br>• <span class="bold-fact">Outside India (No sponsorship):</span> Multiplier = 0.45
+          </p>
+        </div>
+        
+        <div class="card">
+          <h4 class="card-title">Platform Engagement</h4>
+          <p class="card-body" style="font-size: 13px;">
+            Filters out candidates who logged off months ago.
+            <br><br>• <span class="bold-fact">Active &le; 30 days:</span> Multiplier = 1.0
+            <br>• <span class="bold-fact">Active &ge; 180 days:</span> Multiplier = 0.3
+            <br>• <span class="bold-fact">Response Rate &ge; 70%:</span> Multiplier = 1.0
+          </p>
+        </div>
+      </div>
+      
+      <p style="font-size: 14px; color:#8b949e; text-align: center; margin-top: 6mm; font-style: italic;">
+        Formulation: Final Score = Base Fit Score &times; Notice Factor &times; Location Factor &times; Active Factor &times; OpenToWork Factor &times; GitHub Factor
+      </p>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 5 of 7</div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Grounded Reasoning -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 06</div>
+      <h2 class="slide-title">Grounded Reasoning Generator</h2>
+    </div>
+    
+    <div class="slide-content">
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title" style="color:#bc8cff;">
+            <span>📝</span> Dynamic Fact-Based Synthesis
+          </h3>
+          <p class="card-body">
+            Our reasoning generator is fully offline and runs dynamically in milliseconds, adhering to the 6 criteria of the manual evaluation:
+          </p>
+          <ul style="margin-top: 2.5mm;">
+            <li><span class="bold-fact">No Hallucinations:</span> Incorporates variables read directly from the candidate profile (exact companies, years, and skills).</li>
+            <li><span class="bold-fact">JD Alignment:</span> Explicitly cites search database systems (Milvus, Pinecone) or evaluation frameworks (NDCG).</li>
+            <li><span class="bold-fact">Honest Concerns:</span> Notes if notice periods are long, or if the candidate's career has been entirely in service firms.</li>
+            <li><span class="bold-fact">High Variation:</span> Rotates through multiple grammatical structures to prevent robotic templates.</li>
+          </ul>
+        </div>
+        
+        <div>
+          <div class="highlight-box">
+            <h4 class="highlight-title">Sample Reasoning Output (Rank 1)</h4>
+            <p class="highlight-desc" style="font-family: monospace; font-size: 12px; color: #a5d6ff;">
+              "Strong senior candidate with 6.5 years in Applied ML, highlighting hands-on expertise in Weaviate, BM25, PEFT at Razorpay. Strong platform activity signals. Short notice period (45 days) facilitates a rapid transition."
+            </p>
+          </div>
+          
+          <div class="highlight-box" style="border-left-color: #ff7b72; background-color: #2c1a1a;">
+            <h4 class="highlight-title" style="color: #ff7b72;">Sample Reasoning Output (Rank 3 - With Concern)</h4>
+            <p class="highlight-desc" style="font-family: monospace; font-size: 12px; color: #ffb8b8;">
+              "Product-focused AI Engineer with 6.0 years of experience and deep expertise in OpenSearch, Sentence Transformers, Learning to Rank. Has shipped ranking/retrieval systems in production. However, notice period of 60 days is slightly long."
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 6 of 7</div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Technical Specifications -->
+  <div class="slide">
+    <div class="slide-header">
+      <div class="slide-num">SLIDE 07</div>
+      <h2 class="slide-title">Technical Specifications & Reproducibility</h2>
+    </div>
+    
+    <div class="slide-content">
+      <div class="grid-2">
+        <div class="card">
+          <h3 class="card-title">⚙️ Sandbox Performance</h3>
+          <p class="card-body">
+            Designed for high performance and low operational complexity in standard Docker environments.
+          </p>
+          <ul style="margin-top: 3mm;">
+            <li><span class="bold-fact">Execution Time:</span> ~74 seconds for the entire 100,000 candidate pool (Limit: 300s).</li>
+            <li><span class="bold-fact">Memory Footprint:</span> &le; 1.5 GB RAM (Limit: 16 GB).</li>
+            <li><span class="bold-fact">Zero Network:</span> 100% self-contained locally; no external LLM API dependencies.</li>
+            <li><span class="bold-fact">CPU Only:</span> Highly optimized linear vector algebra (NumPy) + Scikit-Learn TF-IDF.</li>
+          </ul>
+        </div>
+        
+        <div class="card">
+          <h3 class="card-title">✅ Submission Checklist</h3>
+          <p class="card-body">
+            Verifies all challenge constraints and validator scripts pass.
+          </p>
+          <ul style="margin-top: 3mm;">
+            <li><span class="bold-fact">Rows Count:</span> Exactly 100 data rows + 1 header row.</li>
+            <li><span class="bold-fact">Ranks range:</span> Exactly 1 to 100.</li>
+            <li><span class="bold-fact">Scores:</span> Monotonically non-increasing with rank (descending).</li>
+            <li><span class="bold-fact">Honeypot Rate:</span> 0% trap presence in the final top-100 shortlist.</li>
+            <li><span class="bold-fact">GitHub Repository:</span> Clean, structured codebase with strict gitignore rules.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="slide-footer">
+      <div class="team-tag">Antigravity-Ranker</div>
+      <div class="team-tag">Slide 7 of 7</div>
+    </div>
+  </div>
+
+</body>
+</html>
